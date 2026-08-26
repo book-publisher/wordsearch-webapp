@@ -30,7 +30,7 @@ function getSettings() {
     const directions = Array.from(document.querySelectorAll('.direction-toggle:checked')).map(cb => cb.value);
     
     return {
-        title: document.getElementById('puzzle-title').value || "Word Search",
+        title: '',
         words: document.getElementById('word-list').value.split('\n').map(w => w.trim()).filter(w => w),
         cols, rows,
         directions,
@@ -83,7 +83,7 @@ function renderPuzzleToDOM(puzzleData, puzzleNum, isSolution = false, isSmallMod
     } else if (isSmallMode) {
         title.textContent = `${solutionLabel} #${puzzleNum}`;
     } else {
-        title.textContent = `${puzzleLabel} #${puzzleNum} – ${s.title}`;
+        title.textContent = `${puzzleLabel} #${puzzleNum}`;
     }
     
     if (isSmallMode) {
