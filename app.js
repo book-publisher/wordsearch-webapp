@@ -29,8 +29,15 @@ function getSettings() {
 
     const directions = Array.from(document.querySelectorAll('.direction-toggle:checked')).map(cb => cb.value);
     
+    // ── Title visibility logic ────────────────────────────────────────────────
+    // A value that is ONLY spaces (e.g. " ") means the user wants NO title.
+    const rawTitle = document.getElementById('puzzle-title').value;
+    const showTitle = rawTitle.trim().length > 0; // false when empty or only spaces
+    const titleText = showTitle ? rawTitle.trim() : '';
+
     return {
-        title: '',
+        title: titleText,
+        showTitle: showTitle,
         words: document.getElementById('word-list').value.split('\n').map(w => w.trim()).filter(w => w),
         cols, rows,
         directions,
@@ -70,29 +77,37 @@ function renderPuzzleToDOM(puzzleData, puzzleNum, isSolution = false, isSmallMod
         page.style.setProperty('--page-height', `${heightIn}in`);
     }
 
-    // Title
-    const header = document.createElement('div');
-    header.className = 'page-header';
-    const title = document.createElement('h1');
-    title.className = `page-title title-${s.titlePlacement}`;
-    title.style.fontFamily = `"${s.fontTitle}", sans-serif`;
+    // ── Title ──────────────────────────────────────────────────────────────
+    // For solution pages and small-mode cards, always show the auto label.
+    // For puzzle pages, only show a header when showTitle is not suppressed.
     const puzzleLabel   = (LANG_LABELS[s.language] || LANG_LABELS.en).puzzle;
     const solutionLabel = (LANG_LABELS[s.language] || LANG_LABELS.en).solution;
-    if (isSolution && !isSmallMode) {
-        title.textContent = `${solutionLabel} #${puzzleNum}`;
-    } else if (isSmallMode) {
-        title.textContent = `${solutionLabel} #${puzzleNum}`;
-    } else {
-        title.textContent = `${puzzleLabel} #${puzzleNum}`;
-    }
-    
-    if (isSmallMode) {
-        title.className = 'solution-mini-title';
-    }
-    
-    header.appendChild(title);
-    if (!isSmallMode || (isSmallMode && title.textContent)) {
-         page.appendChild(header);
+
+    // Determine whether to show a header at all
+    const shouldShowHeader = isSolution || isSmallMode || s.showTitle !== false;
+
+    if (shouldShowHeader) {
+        const header = document.createElement('div');
+        header.className = 'page-header';
+        const title = document.createElement('h1');
+        title.style.fontFamily = `"${s.fontTitle}", sans-serif`;
+
+        if (isSmallMode) {
+            // Mini solution card
+            title.className = 'solution-mini-title';
+            title.textContent = `${solutionLabel} #${puzzleNum}`;
+        } else if (isSolution) {
+            // Full solution page — always labelled
+            title.className = `page-title title-${s.titlePlacement}`;
+            title.textContent = `${solutionLabel} #${puzzleNum}`;
+        } else {
+            // Puzzle page — use custom title if provided, otherwise auto label
+            title.className = `page-title title-${s.titlePlacement}`;
+            title.textContent = s.title ? s.title : `${puzzleLabel} #${puzzleNum}`;
+        }
+
+        header.appendChild(title);
+        page.appendChild(header);
     }
 
     // Body layout
@@ -359,6 +374,23 @@ document.getElementById('csv-upload').addEventListener('change', (e) => {
 
 // Language change triggers a preview refresh
 document.getElementById('puzzle-language').addEventListener('change', generateBatch);
+
+// ── Puzzle title: live-update preview as the user types ───────────────────────
+// If the field contains only spaces the title will be hidden; any other text shows it.
+document.getElementById('puzzle-title').addEventListener('input', () => {
+    // Rebuild the settings snapshot in currentPuzzlesData so renderPuzzleToDOM
+    // picks up the new title / showTitle flag, then repaint the preview.
+    const rawTitle = document.getElementById('puzzle-title').value;
+    const showTitle = rawTitle.trim().length > 0;
+    const titleText = showTitle ? rawTitle.trim() : '';
+
+    currentPuzzlesData.forEach(pd => {
+        pd.settings.title     = titleText;
+        pd.settings.showTitle = showTitle;
+    });
+
+    updatePreview();
+});
 
 // Initial generation
 window.addEventListener('settingsChanged', generateBatch);
