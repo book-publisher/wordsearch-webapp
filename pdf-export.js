@@ -50,7 +50,7 @@ async function generatePDF(puzzlesData, trimSizeStr, solutionsPerPage) {
 
         const titleText = isSolution
             ? `${labels.solution} #${puzzleNum}`
-            : `${labels.puzzle} #${puzzleNum} \u2013 ${s.title}`;
+            : `${labels.puzzle} #${puzzleNum}`;
 
         let titleX;
         let titleAlign = 'center';
