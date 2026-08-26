@@ -48,9 +48,19 @@ async function generatePDF(puzzlesData, trimSizeStr, solutionsPerPage) {
         const lang = s.language || 'en';
         const labels = LANG_LABELS_PDF[lang] || LANG_LABELS_PDF.en;
 
-        const titleText = isSolution
-            ? `${labels.solution} #${puzzleNum}`
-            : `${labels.puzzle} #${puzzleNum}`;
+        // Determine what to show in the title area:
+        //   - Solution page   → always show auto "Solution #N" label
+        //   - Puzzle page, showTitle === false  → skip title entirely
+        //   - Puzzle page, custom title provided → use that text
+        //   - Puzzle page, no custom title       → fall back to auto "Puzzle #N"
+        let titleText;
+        if (isSolution) {
+            titleText = `${labels.solution} #${puzzleNum}`;
+        } else if (s.showTitle === false) {
+            titleText = null; // hidden
+        } else {
+            titleText = s.title && s.title.trim() ? s.title.trim() : `${labels.puzzle} #${puzzleNum}`;
+        }
 
         let titleX;
         let titleAlign = 'center';
@@ -58,7 +68,9 @@ async function generatePDF(puzzlesData, trimSizeStr, solutionsPerPage) {
         else if (s.titlePlacement === 'right')  { titleX = W - MARGIN; titleAlign = 'right'; }
         else                                    { titleX = W / 2; titleAlign = 'center'; }
 
-        pdf.text(titleText, titleX, MARGIN + 0.3, { align: titleAlign });
+        if (titleText !== null) {
+            pdf.text(titleText, titleX, MARGIN + 0.3, { align: titleAlign });
+        }
 
         // ── Grid geometry ────────────────────────────────────────────
         // The grid is always top-center, directly under the title
